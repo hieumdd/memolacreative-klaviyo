@@ -8,7 +8,7 @@ export type Account = {
 
 export const MemolaCreative: Account = {
     name: 'MemolaCreative',
-    apiKey: process.env.MEMOLACREATIVE_KLAIVYO_API_KEY ?? '',
+    apiKey: process.env.MEMOLACREATIVE_KLAVIYO_API_KEY ?? '',
     configs: [
         { name: 'Clicked Email', id: 'M9AG7W', by: ['$flow', '$message'] },
         { name: 'Opened Email', id: 'KTyASG', by: ['$flow', '$message'] },
