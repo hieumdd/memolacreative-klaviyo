@@ -1,0 +1,56 @@
+name: Cloud Functions
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+  workflow_dispatch:
+
+concurrency: ${{ github.ref }}
+
+env:
+  ENV_FILE: env.yaml
+  FUNCTION_NAME: memolacreative-klaviyo-${{ github.ref_name }}
+  GCP_SA: etl-pipelines@onik-lab.iam.gserviceaccount.com
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - run: tsc --project tsconfig.build.json
+
+      - run: |
+          cp package.json dist/package.json
+          cp package-lock.json dist/package-lock.json
+
+      - uses: google-github-actions/auth@v0
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v0
+
+      - run: |
+          echo "MEMOLACREATIVE_KLAVIYO_API_KEY: ${{ secrets.MEMOLACREATIVE_KLAVIYO_API_KEY }}" >> ${{ env.ENV_FILE }}
+
+      - run: >-
+          gcloud functions deploy ${{ env.FUNCTION_NAME }}
+          --entry-point=main
+          --source=dist
+          --region=us-central1
+          --timeout=530
+          --memory=2048MB
+          --runtime=nodejs16
+          --trigger-http
+          --no-user-output-enabled
+          --service-account=${{ env.GCP_SA }}
+          --env-vars-file=${{ env.ENV_FILE }}
